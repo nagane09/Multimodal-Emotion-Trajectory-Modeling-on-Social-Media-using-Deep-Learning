@@ -1,0 +1,17 @@
+numpy
+pandas
+matplotlib
+seaborn
+scikit-learn
+nltk
+spacy
+emoji
+vaderSentiment
+transformers
+torch
+bertopic
+shap
+lime
+jupyter
+ipykernel
+streamlit
