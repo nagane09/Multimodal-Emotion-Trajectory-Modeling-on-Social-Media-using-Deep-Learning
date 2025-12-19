@@ -60,32 +60,6 @@ This project analyzes emotions in social media posts (Reddit) using NLP and deep
 
 ---
 
-## **Project Structure**
-
-data/
-├─ raw/
-│ ├─ goemotions_1.csv
-│ ├─ goemotions_2.csv
-│ └─ goemotions_3.csv
-└─ processed/
-├─ social_posts.csv
-├─ social_posts_processed.csv
-├─ social_posts_sampled.csv
-├─ social_posts_4class.csv
-├─ X.npy
-├─ y.npy
-├─ le.pkl
-└─ class_weights.npy
-
-models/
-└─ emotion_classifier.pt
-
-src/
-├─ preprocess.py # Data cleaning & preprocessing
-├─ extract_features.py # Feature extraction (text, emoji, metadata)
-├─ train_model.py # Train emotion classification model
-└─ app.py # Streamlit app for predictions
-
 
 ## **Technologies Used**
 
