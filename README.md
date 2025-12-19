@@ -4,7 +4,7 @@
 
 You can try the project online using the deployed Streamlit app:  
 
-[Open Live Demo](https://your-deployed-link.com)
+[Open Live Demo]  :-  https://nagane09-multimodal-emotion-trajectory-modeling-on-s-app-emne5g.streamlit.app/
 
 * Enter text (with emojis if desired) to see real-time emotion predictions.
 
