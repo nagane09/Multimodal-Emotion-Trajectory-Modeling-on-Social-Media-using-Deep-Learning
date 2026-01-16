@@ -8,143 +8,162 @@ You can try the project online using the deployed Streamlit app:
 
 * Enter text (with emojis if desired) to see real-time emotion predictions.
 
-----
+---
 
-# Social Media Emotion Classification Project
+## Abstract
+Social media contains vast volumes of user-generated text expressing emotions.  
+This project develops a **multimodal emotion classification framework** combining:
 
-## Project Overview
+- **Text embeddings** (Sentence-BERT)
+- **Emoji embeddings**
+- **Metadata features** (post hour, length)
 
-Social media platforms contain large volumes of user-generated text expressing opinions on real-world events.  
-This text is often noisy, informal, and constantly evolving.  
-
-This project aims to:
-
-- Analyze public sentiment on social media over time.
-- Compare different NLP approaches.
-- Evaluate model reliability and interpretability.
+A **feedforward neural network (FNN)** is trained on a **4-class dataset** (positive, negative, mixed, neutral) with **class-weighted cross-entropy loss** to handle imbalance. The model is evaluated using **accuracy, precision, recall, F1-score**, and **confusion matrices**, and is deployed via **Streamlit** for real-time inference.
 
 ---
 
-## Data Preprocessing
+## 1. Problem Definition
+Given a social media post `t`, predict its emotional class `y`:
+f(t; θ) -> y, where y in {positive, negative, mixed, neutral}
 
-1. **Merge Datasets**
-   - Combined multiple CSV files into one master dataset.
-   - Extracted relevant columns: `text`, `created_utc`, emotion labels.
 
-2. **Emotion Label Selection**
-   - Converted multiple binary columns into a single `emotion` column.
-   - Example mapping:
+The objective is to:
 
-```python
-def pick_emotion(row):
-    for col in emotion_cols:
-        if row[col] == 1:
-            return col
-    return "neutral"
-````
-## Text Cleaning
-
-- Lowercasing, removing URLs, mentions, hashtags, punctuation, and stopwords.
-- Emoji extraction using `emoji` library.
-- Metadata extraction: hour of posting and post length.
-
-## Sampling
-
-- Balanced classes for fast and safe training.
-- 1000 samples per emotion category.
-
-## Processed Data Output
-
-- Saved processed CSV: `social_posts_processed.csv`
-- Sampled data: `social_posts_4class.csv`
+- Accurately classify the emotion of posts
+- Handle multimodal inputs (text + emojis + metadata)
+- Reduce bias from class imbalance
+- Provide real-time predictions for end-users
 
 ---
 
-## Feature Extraction
+## 2. Dataset
 
-### Sentence Embeddings
+- **Source:** GoEmotions (Reddit)  
+- **Original posts:** 211,225  
+- **Processed & sampled:** 1,000 posts per class (balanced subset)  
+- **Classes:** positive, negative, mixed, neutral  
 
-- Used `SentenceTransformer` (`all-MiniLM-L12-v2`) to generate 384-dimensional embeddings.
+### Feature Overview
 
-### Emoji Embeddings
+| Feature Type      | Description                                   | Dimension |
+|------------------|-----------------------------------------------|-----------|
+| Text Embedding    | Sentence-BERT (all-MiniLM-L12-v2)            | 384       |
+| Emoji Embedding   | Custom learned embeddings                     | 16        |
+| Metadata Features | Post hour (0-23), Post length (words/100)    | 2         |
 
-- Each emoji represented as a 16-dimensional vector.
-- Summed across all emojis in the text.
+**Train/Validation/Test Split:**
 
-### Metadata Features
+Train: 70%, Validation: 15%, Test: 15%
 
-- Hour of posting normalized [0–1].
-- Post length (word count) normalized.
-
-### Final Feature Vector
-
-X_input = [X_text ⊕ X_emoji ⊕ X_meta]
-
-### Class Weights
-
-- Computed using `sklearn.utils.class_weight` to address class imbalance.
 
 ---
 
-## Model Architecture
+## 3. Data Preprocessing
 
-- **Model Type:** Feedforward Neural Network (MLP) implemented in PyTorch.
-- **Input Dimension:** Combined embedding vector (text + emoji + metadata).
+1. **Text Cleaning:**
+   - Lowercase
+   - Remove URLs, mentions, hashtags, punctuation, stopwords
 
-| Layer | Type | Units | Activation | Dropout |
-|-------|------|-------|------------|---------|
-| 1     | Linear + BatchNorm | 512 | ReLU | 0.3 |
-| 2     | Linear | 256 | ReLU | 0.3 |
-| 3     | Linear | num_classes | Softmax (via CrossEntropyLoss) | - |
+2. **Emoji Extraction:**
+   - Extract emojis from text
+   - Embed each emoji with random 16-D vector
+   - Sum embeddings per post:
 
-### Forward Pass Equation
+E_post = sum(E_emoji_i for i in emojis)
 
-y_hat = Softmax(W3 * (Dropout(ReLU(W2 * (Dropout(ReLU(BatchNorm(W1 * X + b1))) + b2))) + b3))
 
-### Loss Function
+3. **Metadata Features:**
+   - Hour normalized: `hour_norm = hour / 23`
+   - Length normalized: `length_norm = num_words / 100`
 
-Loss = - Σ (wi * yi * log(y_hat_i))  for i = 1 to C
+4. **Final Input Vector:**
+X_post = [Text Embedding | Emoji Embedding | Metadata Features]
 
-- **Optimizer:** Adam, learning rate = 1e-3
-- **Epochs:** 140
-- **Device:** CPU/GPU compatible
+5. **Class Label Encoding:**  
+Labels transformed into integers using `LabelEncoder`:
+y ∈ {0,1,2,3} corresponding to {positive, negative, mixed, neutral}
 
----
-
-## Why This Model?
-
-- Efficient for high-dimensional concatenated embeddings.
-- Leverages semantic information from `SentenceTransformer`.
-- Emoji + metadata integration improves contextual understanding.
-- Class weighting ensures robust learning despite imbalanced emotions.
 
 ---
 
-## Training Pipeline
+## 4. Model Architecture
 
-1. Load features and labels (`X.npy`, `y.npy`).
-2. Split into train (80%) and validation (20%) sets.
-3. Initialize model and optimizer.
-4. Train for 140 epochs.
-5. Validate accuracy on the hold-out set.
-6. Save model weights: `emotion_classifier.pt`.
+Feedforward Neural Network (FNN) with:
+
+- Input layer: 402 units (384 + 16 + 2)  
+- Hidden layers:
+  - 512 units → ReLU → BatchNorm → Dropout 0.3
+  - 256 units → ReLU → Dropout 0.3
+- Output layer: 4 units (Softmax)
+
+--
+
+## 5. Model Training
+
+- Full-batch training on CPU
+- Class weights applied to reduce bias
+- Stratified train-validation split
+
+**Training loop pseudo-code:**
+
+for epoch in 1..140:
+optimizer.zero_grad()
+outputs = model(X_train)
+loss = weighted_cross_entropy(outputs, y_train)
+loss.backward()
+optimizer.step()
+
+
+Validation accuracy measured after training.
 
 ---
 
-## Model Evaluation
+## 6. Evaluation Metrics
 
-- **Validation Accuracy:** Computed after training.
-- **Prediction on single example:**
+- **Accuracy:**
 
-```python
-predicted_class = le.inverse_transform([torch.argmax(model(X_sample))])\
-```
+Accuracy = correct_predictions / total_predictions
 
-----
 
-# Impact & Sustainability
+- **Precision, Recall, F1-score per class:**
 
-- **Analyzes public sentiment efficiently.**
-- **Provides actionable insights from noisy social media data.**
-- **Can assist in social research, marketing analysis, and public opinion tracking.**
+Precision_c = TP_c / (TP_c + FP_c)
+Recall_c = TP_c / (TP_c + FN_c)
+F1_c = 2 * (Precision_c * Recall_c) / (Precision_c + Recall_c)
 
+
+- **Confusion Matrix:** Provides detailed per-class error analysis
+
+---
+Observations:
+
+- FNN outperforms classical ML (Random Forest, XGBoost) on multimodal embeddings  
+- Most misclassifications occur between `mixed` and `neutral` classes
+
+---
+
+## 8. Deployment
+
+- **Framework:** Streamlit  
+- **Functionality:**
+  1. Input text (with optional emojis)
+  2. Text → Sentence-BERT embedding
+  3. Emoji embedding generated and combined
+  4. Metadata features concatenated
+  5. Input vector passed to trained FNN
+  6. Predicted emotion displayed with confidence
+
+**Example Output:**
+
+Predicted Emotion: positive
+
+Deployment is **demonstrative**; the core contribution is research methodology and evaluation.
+
+---
+
+## 9. Technology Stack
+
+- **Programming:** Python 3.x  
+- **Libraries:** PyTorch, NumPy, pandas, scikit-learn, SentenceTransformers, Streamlit  
+- **Preprocessing:** NLTK stopwords, regex, emoji library  
+- **Deployment:** Streamlit interactive web app  
