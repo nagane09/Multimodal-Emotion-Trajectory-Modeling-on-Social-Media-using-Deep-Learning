@@ -3,7 +3,7 @@ import pandas as pd
 INPUT_FILE = "data/processed/social_posts_processed.csv"
 OUTPUT_FILE = "data/processed/social_posts_sampled.csv"
 
-SAMPLES_PER_EMOTION = 1000  # safe & fast
+SAMPLES_PER_EMOTION = 1000  
 
 df = pd.read_csv(INPUT_FILE)
 
