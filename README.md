@@ -96,7 +96,7 @@ Feedforward Neural Network (FNN) with:
   - 256 units → ReLU → Dropout 0.3
 - Output layer: 4 units (Softmax)
 
---
+---
 
 ## 5. Model Training
 
