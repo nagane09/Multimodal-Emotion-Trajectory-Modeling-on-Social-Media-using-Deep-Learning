@@ -14,5 +14,5 @@ shap
 lime
 jupyter
 ipykernel
-streamlit
+streamlit>=1.32.0
 altair==4.2.2
